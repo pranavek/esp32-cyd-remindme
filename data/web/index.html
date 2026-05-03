@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>RemindMe</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>RemindMe</h1>
+  <p id="device-line" class="device-line">loading…</p>
+</header>
+
+<nav class="tabs">
+  <button data-tab="status" class="active">Status</button>
+  <button data-tab="reminders">Reminders</button>
+  <button data-tab="goals">Goals</button>
+  <button data-tab="backend">Backend</button>
+  <button data-tab="wifi">Wi-Fi</button>
+  <button data-tab="system">System</button>
+</nav>
+
+<main>
+  <section data-pane="status" class="active">
+    <div class="card">
+      <h2>Today</h2>
+      <div class="row"><span>Stretch</span><strong id="t-stretch">…</strong></div>
+      <div class="row"><span>Water</span><strong id="t-water">…</strong></div>
+      <div class="row"><span>Walk</span><strong id="t-walk">…</strong></div>
+    </div>
+    <div class="card">
+      <h2>Quick log</h2>
+      <div class="quick">
+        <button data-act="stretch">Stretch +5m</button>
+        <button data-act="water">Water +250ml</button>
+        <button data-act="walk">Walk +10m</button>
+      </div>
+      <p class="dim small">Logs locally and pushes to your sheet on the next sync.</p>
+    </div>
+    <div class="card">
+      <h2>Test reminder</h2>
+      <div class="quick">
+        <button data-fire="stretch" class="ghost">Fire stretch</button>
+        <button data-fire="water"   class="ghost">Fire water</button>
+        <button data-fire="walk"    class="ghost">Fire walk</button>
+      </div>
+    </div>
+  </section>
+
+  <section data-pane="reminders">
+    <div class="card">
+      <h2>Intervals (minutes)</h2>
+      <label>Stretch <input type="number" min="5" max="480" data-key="intervals.stretch_min"></label>
+      <label>Water   <input type="number" min="5" max="480" data-key="intervals.water_min"></label>
+      <label>Walk    <input type="number" min="5" max="480" data-key="intervals.walk_min"></label>
+    </div>
+    <div class="card">
+      <h2>Quiet hours</h2>
+      <label class="toggle">
+        <input type="checkbox" data-key="quiet.enabled">
+        <span>Suppress reminders during quiet hours</span>
+      </label>
+      <label>Start hour (0–23) <input type="number" min="0" max="23" data-key="quiet.start_hour"></label>
+      <label>End hour (0–23)   <input type="number" min="0" max="23" data-key="quiet.end_hour"></label>
+    </div>
+    <button class="primary" data-save>Save & reboot</button>
+  </section>
+
+  <section data-pane="goals">
+    <div class="card">
+      <h2>Daily goals</h2>
+      <label>Stretch (min) <input type="number" min="1" max="60"  data-key="goals.stretch_min"></label>
+      <label>Water (ml)    <input type="number" min="100" max="5000" data-key="goals.water_ml"></label>
+      <label>Walk (min)    <input type="number" min="1" max="120" data-key="goals.walk_min"></label>
+    </div>
+    <button class="primary" data-save>Save & reboot</button>
+  </section>
+
+  <section data-pane="backend">
+    <div class="card">
+      <h2>Google Apps Script</h2>
+      <label>Apps Script URL <input type="url" placeholder="https://script.google.com/macros/s/.../exec" data-key="apps_script_url"></label>
+      <label>Sheet URL (display only) <input type="url" placeholder="https://docs.google.com/spreadsheets/d/..." data-key="sheet_url"></label>
+      <p class="dim small">Deploy <code>backend/Code.gs</code> as a web app, then paste the <code>/exec</code> URL above. See <code>backend/README.md</code> in the repo for step-by-step setup.</p>
+    </div>
+    <div class="card">
+      <h2>ntfy (optional)</h2>
+      <label>Topic <input type="text" data-key="ntfy_topic" placeholder="remindme-yourname-7f3a"></label>
+      <p class="dim small">If your Apps Script publishes to ntfy via Script Property, leave this blank — it's a UI-only field for documenting which topic the script is using.</p>
+    </div>
+    <button class="primary" data-save>Save & reboot</button>
+  </section>
+
+  <section data-pane="wifi">
+    <div class="card">
+      <h2>Wi-Fi</h2>
+      <p>Connected to <strong id="wifi-ssid">…</strong></p>
+      <p>Signal: <strong id="wifi-rssi">…</strong></p>
+      <p>IP: <strong id="wifi-ip">…</strong></p>
+    </div>
+    <button class="warn" data-action="wifi-reset">Forget Wi-Fi & re-provision</button>
+  </section>
+
+  <section data-pane="system">
+    <div class="card">
+      <h2>Device</h2>
+      <label>Device ID <input type="text" data-key="device_id"></label>
+      <label>mDNS hostname <input type="text" data-key="mdns_hostname"></label>
+      <p class="dim small">After saving, the device reboots and is reachable at <code><span id="mdns-host">remindme</span>.local</code>.</p>
+    </div>
+    <button class="primary" data-save>Save & reboot</button>
+    <div class="card">
+      <h2>Status</h2>
+      <div class="row"><span>Firmware</span><strong id="s-fw">…</strong></div>
+      <div class="row"><span>Uptime</span><strong id="s-up">…</strong></div>
+      <div class="row"><span>Free heap</span><strong id="s-heap">…</strong></div>
+      <div class="row"><span>Queue depth</span><strong id="s-q">…</strong></div>
+      <div class="row"><span>Last sync</span><strong id="s-sync">…</strong></div>
+      <div class="row"><span>Last error</span><strong id="s-err">…</strong></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" data-action="reboot">Reboot</button>
+      <button class="ghost" data-action="touch-recal">Recalibrate touch</button>
+      <button class="ghost" data-action="stats-refresh">Refresh stats</button>
+    </div>
+  </section>
+</main>
+
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

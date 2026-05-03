@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RemindMe — flash from your browser</title>
+<link rel="stylesheet" href="style.css">
+<!-- ESP Web Tools, by ESPHome. -->
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+<body>
+<main>
+  <header>
+    <h1>RemindMe</h1>
+    <p class="tag">A tiny ESP32 desk gadget that reminds you to stretch, drink water, and walk.</p>
+  </header>
+
+  <section class="hero">
+    <p>Plug in your <strong>ESP32-2432S028 Cheap Yellow Display (dual-USB rev.)</strong> and click&nbsp;below.
+       The flasher runs entirely in your browser via WebSerial — nothing to install.</p>
+
+    <esp-web-install-button manifest="manifest.json" erase-first>
+      <button slot="activate" class="primary">Connect &amp; flash</button>
+      <span slot="unsupported">⚠ Your browser doesn't support WebSerial. Use Chrome, Edge, or any Chromium-based browser on a desktop.</span>
+      <span slot="not-allowed">⚠ This page must be served over HTTPS.</span>
+    </esp-web-install-button>
+
+    <p class="version">Build: <code>__VERSION__</code></p>
+  </section>
+
+  <section>
+    <h2>What you'll see</h2>
+    <ol>
+      <li>Click <em>Connect &amp; flash</em> and pick the device's serial port.</li>
+      <li>Click <em>Install RemindMe</em>. Flashing takes ~60 seconds.</li>
+      <li>The device reboots and creates a Wi-Fi access point named <code>RemindMe-Setup</code>.</li>
+      <li>Join that network from your phone — a captive portal opens; pick your home Wi-Fi.</li>
+      <li>The device reboots, joins, and is reachable at <code>http://remindme.local/</code>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Two USB ports?</h2>
+    <p>Both ports deliver power; only one carries the USB-serial bridge.
+       If the flasher can't see the device, unplug and plug into the other port.</p>
+  </section>
+
+  <section>
+    <h2>What's next</h2>
+    <p>For the full setup walkthrough — Apps Script + ntfy — see
+       <a href="https://github.com/__OWNER__/__REPO__#first-boot">the README</a>
+       and <a href="https://github.com/__OWNER__/__REPO__/blob/main/backend/README.md">backend/README.md</a>.</p>
+  </section>
+
+  <footer>
+    <p>Source: <a href="https://github.com/__OWNER__/__REPO__">GitHub</a>.
+       Flasher powered by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>.</p>
+  </footer>
+</main>
+</body>
+</html>

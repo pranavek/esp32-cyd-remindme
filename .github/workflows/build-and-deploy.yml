@@ -1,0 +1,159 @@
+name: build & deploy web flasher
+
+# Builds the PlatformIO firmware + LittleFS image, merges them into a single
+# .bin at offset 0x0 (so ESP Web Tools can flash the whole device in one
+# pass), copies the result + the static landing page in docs/site/ into a
+# Pages artifact, and deploys it.
+#
+# Triggers:
+#   - push to main           → builds, deploys to Pages
+#   - tag v*                 → builds, deploys, AND attaches firmware to a Release
+#   - workflow_dispatch      → manual rebuild
+#
+# Pages source: GitHub Actions (set in repo Settings → Pages once)
+
+on:
+  push:
+    branches: [main]
+    tags:     ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write          # for the optional release upload
+  pages:    write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install PlatformIO + esptool + Pillow
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio esptool pillow
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Regenerate placeholder icons
+        run: python3 scripts/gen_icons.py
+
+      - name: Build firmware
+        run: pio run -e esp32-cyd
+
+      - name: Build LittleFS image
+        run: pio run -e esp32-cyd -t buildfs
+
+      - name: Locate build artifacts
+        id: artifacts
+        run: |
+          set -euo pipefail
+          BUILD=.pio/build/esp32-cyd
+          ls -la "$BUILD"
+          echo "bootloader=$BUILD/bootloader.bin"   >> "$GITHUB_OUTPUT"
+          echo "partitions=$BUILD/partitions.bin"   >> "$GITHUB_OUTPUT"
+          echo "firmware=$BUILD/firmware.bin"       >> "$GITHUB_OUTPUT"
+          echo "littlefs=$BUILD/littlefs.bin"       >> "$GITHUB_OUTPUT"
+
+      - name: Locate boot_app0.bin
+        id: bootapp0
+        run: |
+          # boot_app0.bin lives in the espressif32 platform packages and
+          # has to be flashed at 0xE000 alongside the bootloader/partitions.
+          # Path varies slightly across platform versions.
+          BOOT_APP0=$(find ~/.platformio/packages -name boot_app0.bin | head -1)
+          echo "found: $BOOT_APP0"
+          test -f "$BOOT_APP0"
+          echo "path=$BOOT_APP0" >> "$GITHUB_OUTPUT"
+
+      - name: Merge into single firmware-merged.bin
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # Standard ESP32 layout for arduino-esp32 + default partitions:
+          #   0x1000  bootloader.bin
+          #   0x8000  partitions.bin
+          #   0xE000  boot_app0.bin
+          #   0x10000 firmware.bin
+          #   0x290000 littlefs.bin   (start of "spiffs" partition in default.csv)
+          python -m esptool --chip esp32 merge_bin \
+            -o out/firmware-merged.bin \
+            --flash_mode dio --flash_size 4MB --flash_freq 40m \
+            0x1000  "${{ steps.artifacts.outputs.bootloader }}" \
+            0x8000  "${{ steps.artifacts.outputs.partitions }}" \
+            0xE000  "${{ steps.bootapp0.outputs.path }}" \
+            0x10000 "${{ steps.artifacts.outputs.firmware }}" \
+            0x290000 "${{ steps.artifacts.outputs.littlefs }}"
+          ls -la out/
+
+      - name: Stage Pages site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -R docs/site/* _site/
+          # ESP Web Tools wants the firmware next to manifest.json
+          cp out/firmware-merged.bin _site/firmware-merged.bin
+
+          VER="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then VER="dev-${GITHUB_SHA::7}"; fi
+          OWNER="${GITHUB_REPOSITORY%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          for f in _site/manifest.json _site/index.html; do
+            sed -i \
+              -e "s/__VERSION__/${VER}/g" \
+              -e "s/__OWNER__/${OWNER}/g" \
+              -e "s/__REPO__/${REPO}/g" \
+              "$f"
+          done
+          ls -la _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Upload merged firmware as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-merged
+          path: out/firmware-merged.bin
+
+      - name: Attach firmware to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/firmware-merged.bin
+            .pio/build/esp32-cyd/firmware.bin
+            .pio/build/esp32-cyd/littlefs.bin
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,24 @@
+:root{
+  --bg:#0a0a0c; --card:#15161a; --fg:#f5f5f7; --dim:#8a8a92;
+  --accent:#ffb84d; --line:#1f2026;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif}
+main{max-width:680px;margin:0 auto;padding:48px 22px 80px}
+header h1{margin:0;font-size:34px;letter-spacing:-.02em}
+.tag{margin:6px 0 26px;color:var(--dim);font-size:17px}
+section{background:var(--card);border-radius:14px;padding:22px;margin:14px 0}
+section.hero{background:linear-gradient(180deg,#1f1d2a,#15161a);border:1px solid var(--accent);box-shadow:0 8px 28px rgba(255,184,77,.08)}
+section h2{margin:0 0 10px;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+button.primary{
+  background:var(--accent);color:#0a0a0c;border:0;border-radius:10px;
+  font:600 17px/1.4 inherit;padding:14px 22px;cursor:pointer;letter-spacing:-.01em
+}
+button.primary:hover{background:#ffc66e}
+.version{margin:14px 0 0;font-size:13px;color:var(--dim)}
+code{background:#000;color:var(--accent);padding:2px 6px;border-radius:4px;font-size:14px}
+ol,ul{padding-left:22px}
+ol li{margin:4px 0}
+a{color:var(--accent)}
+footer{margin-top:30px;color:var(--dim);font-size:13px}

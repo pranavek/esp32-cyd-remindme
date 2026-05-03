@@ -1,0 +1,15 @@
+{
+  "name": "RemindMe",
+  "version": "__VERSION__",
+  "home_assistant_domain": "remindme",
+  "funding_url": "https://github.com/sponsors/__OWNER__",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "firmware-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
