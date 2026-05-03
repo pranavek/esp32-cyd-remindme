@@ -181,16 +181,63 @@ void registerRoutes(AsyncWebServer& server) {
         sendJson(req, doc);
     });
 
-    // Static files at "/" — index.html, app.css, app.js
+    // Static files at "/" — index.html, app.css, app.js. If the LittleFS
+    // image hasn't been uploaded the directory is empty and `/` falls
+    // through to the onNotFound handler below.
     server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
 
-    // 404 fallback redirects to the SPA.
+    // 404 fallback. We deliberately do NOT redirect non-/api/ paths back
+    // to "/" — if /web/index.html is missing on LittleFS, that would loop
+    // the browser. Instead serve a small inline diagnostic page that tells
+    // the user exactly what to do (run `pio run -t uploadfs`).
     server.onNotFound([](AsyncWebServerRequest* req) {
         if (req->url().startsWith("/api/")) {
             sendError(req, 404, "no such route");
-        } else {
-            req->redirect("/");
+            return;
         }
+        bool haveIndex = LittleFS.exists("/web/index.html");
+        AsyncWebServerResponse* res = req->beginResponse(
+            haveIndex ? 404 : 503,
+            "text/html; charset=utf-8",
+            String(R"HTML(<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RemindMe — setup</title>
+<style>
+  body{margin:0;background:#0a0a0c;color:#f5f5f7;
+    font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:32px 22px}
+  h1{margin:0 0 6px;font-size:22px}
+  .card{background:#15161a;border-radius:12px;padding:18px 18px 14px;margin:14px 0;max-width:560px}
+  code,pre{background:#000;color:#ffb84d;padding:2px 6px;border-radius:4px;font-size:13px}
+  pre{padding:10px 12px;overflow:auto}
+  .dim{color:#8a8a92}
+  a{color:#ffb84d}
+</style>
+<h1>RemindMe</h1>
+<p class="dim">Web UI assets are missing on the device.</p>
+<div class="card">
+  <p>The firmware is running and the HTTP server is up
+  (you got this page, which proves it). But the
+  <code>data/</code> folder hasn't been uploaded yet — the file
+  <code>/web/index.html</code> doesn't exist on LittleFS.</p>
+  <p><strong>Fix:</strong> from your dev machine, run</p>
+  <pre>pio run -t uploadfs</pre>
+  <p class="dim">…then power-cycle. The full UI will appear here.</p>
+  <p class="dim">Both the firmware and the LittleFS image must be flashed.
+  The merged <code>firmware-merged.bin</code> from the web flasher
+  includes both, so this page should never appear if you flashed via
+  GitHub Pages — only when flashing locally with
+  <code>pio run -t upload</code> alone.</p>
+</div>
+<div class="card">
+  <p class="dim">Sanity checks:</p>
+  <ul>
+    <li><a href="/ping">/ping</a> → should return <code>pong</code></li>
+    <li><a href="/api/state">/api/state</a> → JSON snapshot</li>
+    <li><a href="/api/config">/api/config</a> → current config</li>
+  </ul>
+</div>
+)HTML"));
+        req->send(res);
     });
 }
 
