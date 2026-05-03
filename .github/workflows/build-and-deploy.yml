@@ -42,7 +42,7 @@ jobs:
       - name: Install PlatformIO + esptool + Pillow
         run: |
           python -m pip install --upgrade pip
-          pip install platformio esptool pillow
+          pip install -r requirements.txt
 
       - name: Cache PlatformIO packages
         uses: actions/cache@v4
